@@ -43,6 +43,35 @@ END;
 //
 DELIMITER ;
 
+-- 2b-test: Test the trigger by adding a movie to watchlist, then reviewing it
+-- Step 1: Add movie_id 5 to user 1's watchlist
+INSERT INTO watchlist_movie (watchlist_id, movie_id)
+SELECT w.watchlist_id, 5
+FROM watchlist w
+WHERE w.user_id = 1
+  AND NOT EXISTS (
+    SELECT 1 FROM watchlist_movie WHERE watchlist_id = w.watchlist_id AND movie_id = 5
+);
+
+-- Step 2: Verify movie is in watchlist
+SELECT wm.watchlist_id, wm.movie_id
+FROM watchlist_movie wm
+JOIN watchlist w ON wm.watchlist_id = w.watchlist_id
+WHERE w.user_id = 1 AND wm.movie_id = 5;
+
+-- Step 3: Insert a review for movie_id 5 (trigger should automatically remove it from watchlist)
+INSERT INTO reviews (user_id, movie_id, rating, liked, review_text)
+SELECT 1, 5, 4, TRUE, 'Great movie, trigger test!'
+WHERE NOT EXISTS (
+    SELECT 1 FROM reviews WHERE user_id = 1 AND movie_id = 5
+);
+
+-- Step 4: Verify movie was removed from watchlist (should return no rows)
+SELECT wm.watchlist_id, wm.movie_id
+FROM watchlist_movie wm
+JOIN watchlist w ON wm.watchlist_id = w.watchlist_id
+WHERE w.user_id = 1 AND wm.movie_id = 5;
+
 -- 3. SEARCH FUNCTIONALITY
 
 -- 3a: Search for movies by partial title

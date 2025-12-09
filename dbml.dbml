@@ -1,0 +1,173 @@
+////////////////////////////////////////////
+// Existing movie / TMDB-style tables
+////////////////////////////////////////////
+
+Table movie {
+  id bigint [primary key] // bigint(20) unsigned
+  title varchar(255)
+  release_date datetime
+  runtime smallint // smallint(5) unsigned
+  budget bigint // bigint(20) unsigned
+  revenue bigint // bigint(20) unsigned
+  overview text
+}
+
+Table genre {
+  id bigint [primary key] // bigint(20) unsigned
+  name varchar(100)
+}
+
+Table movie_genre {
+  movie_id bigint // bigint(20) unsigned
+  genre_id bigint // bigint(20) unsigned
+
+  Note: 'Bridge table between movie and genre'
+}
+
+Table person {
+  id bigint [primary key] // bigint(20) unsigned
+  name varchar(255)
+  birthday date
+  place_of_birth varchar(255)
+}
+
+Table cast {
+  id bigint [primary key] // bigint(20) unsigned
+  person_id bigint
+  movie_id bigint
+  character_name varchar(500)
+  cast_order smallint // smallint(5) unsigned
+}
+
+Table crew {
+  id bigint [primary key] // bigint(20) unsigned
+  person_id bigint
+  movie_id bigint
+  department varchar(100)
+  job varchar(50) [note: "enum('Director','Producer','Executive Producer','Writer','Screenplay')"]
+}
+
+Ref movie_genre_movie: movie_genre.movie_id > movie.id
+Ref movie_genre_genre: movie_genre.genre_id > genre.id
+
+Ref cast_person: cast.person_id > person.id
+Ref cast_movie: cast.movie_id > movie.id
+
+Ref crew_person: crew.person_id > person.id
+Ref crew_movie: crew.movie_id > movie.id
+
+
+////////////////////////////////////////////
+// Social / Letterboxd-style layer
+////////////////////////////////////////////
+
+Table users {
+  user_id int [pk, increment]
+  username varchar(50) [not null, unique]
+  email varchar(100) [not null, unique]
+  password_hash varchar(255) [not null]
+  join_date date [not null]
+  bio text
+  is_premium boolean [default: false]
+}
+
+Table follow {
+  follower_id int [not null]
+  followed_id int [not null]
+
+  Note: 'User A follows User B'
+}
+
+Table reviews {
+  review_id int [pk, increment]
+  user_id int [not null]
+  movie_id bigint [not null]
+  rating tinyint
+  liked boolean [default: false]
+  review_text text
+  logged_at datetime [default: `CURRENT_TIMESTAMP`]
+}
+
+Table watchlist {
+  watchlist_id int [pk, increment]
+  user_id int [not null]
+}
+
+Table watchlist_movie {
+  watchlist_id int [not null]
+  movie_id bigint [not null]
+}
+
+Table tags {
+  tag_id int [pk, increment]
+  tag_name varchar(50) [not null, unique]
+}
+
+Table review_tag {
+  review_id int [not null]
+  tag_id int [not null]
+}
+
+Table review_comment {
+  comment_id int [pk, increment]
+  review_id int [not null]
+  user_id int [not null]
+  comment_text text
+  logged_at datetime [default: `CURRENT_TIMESTAMP`]
+}
+
+Table review_like {
+  user_id int [not null]
+  review_id int [not null]
+}
+
+Table list {
+  list_id int [pk, increment]
+  user_id int [not null]
+  title varchar(255)
+  description text
+  is_public boolean [default: true]
+}
+
+Table list_tag {
+  list_id int [not null]
+  tag_id int [not null]
+}
+
+Table list_movie {
+  list_id int [not null]
+  movie_id bigint [not null]
+  sort_order int
+}
+
+////////////////////////////////////////////
+// Relationships for social layer
+////////////////////////////////////////////
+
+Ref follow_follower: follow.follower_id > users.user_id
+Ref follow_followed: follow.followed_id > users.user_id
+
+Ref reviews_user: reviews.user_id > users.user_id
+Ref reviews_movie: reviews.movie_id > movie.id
+
+Ref watchlist_user: watchlist.user_id > users.user_id
+
+Ref watchlist_movie_watchlist: watchlist_movie.watchlist_id > watchlist.watchlist_id
+Ref watchlist_movie_movie: watchlist_movie.movie_id > movie.id
+
+Ref review_tag_review: review_tag.review_id > reviews.review_id
+Ref review_tag_tag: review_tag.tag_id > tags.tag_id
+
+Ref review_comment_review: review_comment.review_id > reviews.review_id
+Ref review_comment_user: review_comment.user_id > users.user_id
+
+Ref review_like_user: review_like.user_id > users.user_id
+Ref review_like_review: review_like.review_id > reviews.review_id
+
+Ref list_user: list.user_id > users.user_id
+
+Ref list_tag_list: list_tag.list_id > list.list_id
+Ref list_tag_tag: list_tag.tag_id > tags.tag_id
+
+Ref list_movie_list: list_movie.list_id > list.list_id
+Ref list_movie_movie: list_movie.movie_id > movie.id
